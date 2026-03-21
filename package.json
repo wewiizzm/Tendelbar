@@ -1,0 +1,17 @@
+{
+  "name": "tendel-bar-lancheria",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cardapio online e painel administrativo prontos para deploy na Vercel com PostgreSQL serverless.",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "npx vercel@50.34.2 dev",
+    "start": "npx vercel@50.34.2 dev",
+    "check": "node scripts/check.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.0.2"
+  }
+}

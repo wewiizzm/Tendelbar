@@ -1,0 +1,235 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cardápio Online | Sabor da Casa</title>
+  <meta name="description" content="Cardápio online com lanches, pratos, bebidas e sobremesas." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <div class="hero-top">
+        <img class="logo" src="logo-tendel.png" alt="Logo da Tendel Bar e Lancheria" />
+        <div class="hero-copy">
+          <p class="eyebrow">Tendel Bar e Lancheria</p>
+          <h1>Cardápio Online</h1>
+          <p class="hero-text">Escolha sua categoria favorita e faça seu pedido.</p>
+        </div>
+      </div>
+
+      <!-- Badge de horario mantido no codigo, mas oculto da hero por solicitacao. -->
+      <div class="badges" hidden>
+        <span class="badge" id="ordersScheduleBadge">Pedidos online: 06h às 00:24</span>
+      </div>
+
+    </header>
+
+    <p class="orders-paused-banner" id="ordersPausedBanner" role="status" aria-live="polite" hidden>
+      ⏳ No momento estamos com muitos pedidos presenciais. Os pedidos online serão liberados em breve.
+    </p>
+    <p class="orders-online-banner" id="ordersOnlineBanner" role="status" aria-live="polite" hidden>
+      Cardápio online aberto agora. Faça seu pedido.
+    </p>
+
+    <nav class="controls" id="filters" aria-label="Filtros do cardápio">
+      <button type="button" class="filter-btn active" data-filter="todos">Todos</button>
+      <button type="button" class="filter-btn" data-filter="lanches">Lanches</button>
+      <button type="button" class="filter-btn" data-filter="pratos">Pratos</button>
+      <button type="button" class="filter-btn" data-filter="bebidas">Bebidas</button>
+      <button type="button" class="filter-btn" data-filter="sobremesas">Sobremesas</button>
+    </nav>
+
+    <section class="menu-grid" id="menu" aria-label="Itens do cardápio">
+      <article
+        class="item"
+        data-category="lanches"
+        data-ingredients="Pão brioche, hambúrguer bovino 160g, queijo cheddar, tomate e molho da casa."
+      >
+        <div class="content">
+          <span class="tag">Lanche</span>
+          <h2>X-Burger Artesanal</h2>
+          <p class="item-ingredients">Pão brioche, hambúrguer bovino 160g, queijo cheddar, tomate e molho da casa.</p>
+          <div class="price-row">
+            <span class="price">R$ 26,90</span>
+            <button type="button" class="order">Pedir agora</button>
+          </div>
+        </div>
+      </article>
+
+      <article
+        class="item"
+        data-category="lanches"
+        data-ingredients="Pão selado, hambúrguer bovino 180g, queijo prato, bacon crocante, cebola caramelizada e molho especial."
+      >
+        <div class="content">
+          <span class="tag">Lanche</span>
+          <h2>X-Bacon Supremo</h2>
+          <p class="item-ingredients">Pão selado, hambúrguer bovino 180g, queijo prato, bacon crocante, cebola caramelizada e molho especial.</p>
+          <div class="price-row">
+            <span class="price">R$ 31,90</span>
+            <button type="button" class="order">Pedir agora</button>
+          </div>
+        </div>
+      </article>
+
+      <article
+        class="item"
+        data-category="pratos"
+        data-ingredients="Filé de frango empanado, molho de tomate artesanal, queijo gratinado, arroz branco e batata frita."
+      >
+        <div class="content">
+          <span class="tag">Prato</span>
+          <h2>Parmegiana de Frango</h2>
+          <p class="item-ingredients">Filé de frango empanado, molho de tomate artesanal, queijo gratinado, arroz branco e batata frita.</p>
+          <div class="price-row">
+            <span class="price">R$ 42,00</span>
+            <button type="button" class="order">Pedir agora</button>
+          </div>
+        </div>
+      </article>
+
+      <article
+        class="item"
+        data-category="pratos"
+        data-ingredients="Tiras de carne, creme de leite, molho especial, arroz branco e batata palha."
+      >
+        <div class="content">
+          <span class="tag">Prato</span>
+          <h2>Strogonoff de Carne</h2>
+          <p class="item-ingredients">Tiras de carne, creme de leite, molho especial, arroz branco e batata palha.</p>
+          <div class="price-row">
+            <span class="price">R$ 38,50</span>
+            <button type="button" class="order">Pedir agora</button>
+          </div>
+        </div>
+      </article>
+
+      <article
+        class="item"
+        data-category="bebidas"
+        data-ingredients="Fruta natural batida na hora e água filtrada."
+      >
+        <div class="content">
+          <span class="tag">Bebida</span>
+          <h2>Suco Natural 500ml</h2>
+          <p class="item-ingredients">Fruta natural batida na hora e água filtrada.</p>
+          <div class="price-row">
+            <span class="price">R$ 11,90</span>
+            <button type="button" class="order">Pedir agora</button>
+          </div>
+        </div>
+      </article>
+
+      <article
+        class="item"
+        data-category="bebidas"
+        data-ingredients="Bebida gaseificada em lata 350ml (Coca-Cola, Guaraná, Sprite ou Fanta)."
+      >
+        <div class="content">
+          <span class="tag">Bebida</span>
+          <h2>Refrigerante Lata</h2>
+          <p class="item-ingredients">Bebida gaseificada em lata 350ml (Coca-Cola, Guaraná, Sprite ou Fanta).</p>
+          <div class="price-row">
+            <span class="price">R$ 6,50</span>
+            <button type="button" class="order">Pedir agora</button>
+          </div>
+        </div>
+      </article>
+
+      <article
+        class="item"
+        data-category="sobremesas"
+        data-ingredients="Brownie de chocolate, sorvete de creme e calda de chocolate."
+      >
+        <div class="content">
+          <span class="tag">Sobremesa</span>
+          <h2>Brownie com Sorvete</h2>
+          <p class="item-ingredients">Brownie de chocolate, sorvete de creme e calda de chocolate.</p>
+          <div class="price-row">
+            <span class="price">R$ 18,90</span>
+            <button type="button" class="order">Pedir agora</button>
+          </div>
+        </div>
+      </article>
+
+      <article
+        class="item"
+        data-category="sobremesas"
+        data-ingredients="Leite condensado, ovos, leite e calda de caramelo."
+      >
+        <div class="content">
+          <span class="tag">Sobremesa</span>
+          <h2>Pudim da Casa</h2>
+          <p class="item-ingredients">Leite condensado, ovos, leite e calda de caramelo.</p>
+          <div class="price-row">
+            <span class="price">R$ 12,90</span>
+            <button type="button" class="order">Pedir agora</button>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <footer class="footer">
+      <p>Desenvolvido por Wewiizzm</p>
+      <p>São Lourenço do Sul | Rio Grande do Sul | Brasil</p>
+    </footer>
+  </main>
+
+  <a class="owner-access" href="admin.html">Área do ADM</a>
+
+  <div class="modal-overlay" id="orderModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button type="button" class="modal-close" id="closeModal" aria-label="Fechar">×</button>
+      <p class="modal-kicker">Montar pedido</p>
+      <h2 id="modalTitle">Seu pedido</h2>
+      <p class="modal-price" id="modalPrice">Adicione um ou mais itens.</p>
+
+      <section class="modal-builder" aria-label="Adicionar mais itens">
+        <h3>Adicionar outro item</h3>
+        <div class="builder-row">
+          <select id="itemSelect" aria-label="Selecionar item"></select>
+          <input type="number" id="itemQuantity" min="1" value="1" aria-label="Quantidade do item" />
+          <button type="button" id="addItemButton" class="add-item">Adicionar</button>
+        </div>
+      </section>
+
+      <section class="modal-cart" aria-label="Itens do pedido">
+        <h3>Itens adicionados</h3>
+        <div id="cartItems" class="cart-items"></div>
+        <p id="cartEmpty" class="cart-empty">Nenhum item no pedido.</p>
+      </section>
+
+      <form id="orderForm" class="order-form">
+        <label class="field">
+          <span>Hora de retirada</span>
+          <input type="time" id="pickupTime" required />
+        </label>
+
+        <label class="field">
+          <span>Observação geral (opcional)</span>
+          <textarea id="orderNotes" rows="3" placeholder="Ex.: sem talher, retirar na frente da loja..."></textarea>
+        </label>
+
+        <label class="field">
+          <span>Nome completo</span>
+          <input
+            type="text"
+            id="customerName"
+            autocomplete="name"
+            placeholder="Informe seu nome completo"
+            required
+          />
+        </label>
+
+        <p class="order-total" id="orderTotal">Valor total: R$ 0,00</p>
+        <button type="submit" class="submit-order">Enviar pedido no WhatsApp</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="logo-animation.js" defer></script>
+  <script src="script.js" defer></script>
+</body>
+</html>
