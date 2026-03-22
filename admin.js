@@ -557,34 +557,12 @@ async function requestAdminOrdersNotificationPermission() {
 }
 
 function notifyAdminNewOrder(order) {
-  if (!adminAuthenticated || !adminOrdersAccessAuthenticated || !order) {
-    return;
-  }
-  showAdminNewOrderPopup(order);
-  const orderCode = getOrderDisplayCode(order);
-  const orderSource = getOrderSourceLabel(order);
-  const customerName = sanitizeMenuText(order?.customerName, 'Pedido sem identificacao');
-  const pickupTime = formatPickupTime(order?.pickupTime);
-  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
-    return;
-  }
-  try {
-    new Notification('Novo pedido recebido', {
-      body: `${orderCode} | ${orderSource} | ${customerName} | Retirada ${pickupTime}`,
-      tag: 'tendel-new-order',
-      renotify: true
-    });
-  } catch (_) {}
+  void order;
 }
 
 function trackAdminIncomingOrders(orders) {
   const sortedOrders = sortAdminOrdersNewestFirst(orders);
-  const latestOrderKey = getLatestAdminOrderKey(sortedOrders);
-  const latestOrder = sortedOrders[0] || null;
-  if (latestOrderKey && lastAdminOrdersSeenKey && latestOrderKey !== lastAdminOrdersSeenKey) {
-    notifyAdminNewOrder(latestOrder);
-  }
-  lastAdminOrdersSeenKey = latestOrderKey;
+  lastAdminOrdersSeenKey = getLatestAdminOrderKey(sortedOrders);
 }
 
 async function requestAdminOrdersWakeLock() {
@@ -2107,26 +2085,16 @@ function refreshAdminPanel() {
   updateAdminControlStatus();
   setAdminSaveAllVisibility();
   renderCategoryOptions(adminNewCategoryInput, adminNewCategoryInput?.value);
-  if (activeAdminPanel === 'counter') {
-    renderAdminCounterPanel();
-  }
   if (activeAdminPanel === 'menu') {
     renderAdminMenuEditor();
   }
   if (activeAdminPanel === 'categories') {
     renderAdminCategoryEditor();
   }
-  if (activeAdminPanel === 'orders') {
-    renderOrdersList();
-  }
 }
 
 function setAdminPanel(panelName) {
-  if (panelName === 'orders' && adminOrdersPanel) {
-    activeAdminPanel = 'orders';
-  } else if (panelName === 'counter' && adminCounterPanel) {
-    activeAdminPanel = 'counter';
-  } else if (panelName === 'menu' && adminMenuPanel) {
+  if (panelName === 'menu' && adminMenuPanel) {
     activeAdminPanel = 'menu';
   } else if (panelName === 'categories' && adminCategoriesPanel) {
     activeAdminPanel = 'categories';
@@ -2156,24 +2124,7 @@ function setAdminPanel(panelName) {
   }
   setAdminSaveAllVisibility();
   syncAdminOrdersWakeLock();
-  if (activeAdminPanel === 'orders') {
-    renderOrdersList();
-    if (pendingAdminNewOrderPopupOrder) {
-      showAdminNewOrderPopup(pendingAdminNewOrderPopupOrder);
-    } else {
-      hideAdminNewOrderPopup();
-    }
-    return;
-  }
   hideAdminNewOrderPopup();
-  if (activeAdminPanel === 'counter') {
-    if (adminCounterStatus) {
-      adminCounterStatus.textContent = 'Monte o pedido e registre aqui os atendimentos do balcao.';
-    }
-    renderAdminCounterPanel();
-    adminCounterItemSelect?.focus();
-    return;
-  }
   if (activeAdminPanel === 'categories') {
     if (adminCategoryStatus) {
       adminCategoryStatus.textContent = 'Crie uma categoria e depois use no cadastro de itens.';
@@ -2715,10 +2666,6 @@ if (adminCategoryRemovePasswordInput) {
 adminTabButtons.forEach((button) => {
   button.addEventListener('click', () => {
     if (!adminAuthenticated) {
-      return;
-    }
-    if (button.dataset.panel === 'orders' && !adminOrdersAccessAuthenticated) {
-      openAdminOrdersAccessModal();
       return;
     }
     setAdminPanel(button.dataset.panel);
