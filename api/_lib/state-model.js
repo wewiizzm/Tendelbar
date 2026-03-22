@@ -10,6 +10,7 @@ const { createHttpError } = require("./http");
 
 const ORDER_STATUS_PENDING = "pending";
 const ORDER_STATUS_READY = "ready";
+const BUSINESS_TIME_ZONE = "America/Sao_Paulo";
 
 function sanitizeText(value, fallback = "") {
   const normalized = typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
@@ -78,13 +79,33 @@ function timeToMinutes(value) {
   return hours * 60 + minutes;
 }
 
+function getCurrentBusinessMinutes(now = new Date()) {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-GB", {
+      timeZone: BUSINESS_TIME_ZONE,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    });
+    const parts = formatter.formatToParts(now);
+    const hours = Number.parseInt(parts.find((part) => part.type === "hour")?.value || "", 10);
+    const minutes = Number.parseInt(parts.find((part) => part.type === "minute")?.value || "", 10);
+    if (Number.isInteger(hours) && Number.isInteger(minutes)) {
+      return hours * 60 + minutes;
+    }
+  } catch (_) {
+    // Se Intl/timeZone falhar, caimos no horario local do runtime.
+  }
+  return now.getHours() * 60 + now.getMinutes();
+}
+
 function isWithinScheduleNow(openTime, closeTime, now = new Date()) {
   const openMinutes = timeToMinutes(openTime);
   const closeMinutes = timeToMinutes(closeTime);
   if (openMinutes === null || closeMinutes === null || openMinutes === closeMinutes) {
     return true;
   }
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowMinutes = getCurrentBusinessMinutes(now);
   if (openMinutes < closeMinutes) {
     return nowMinutes >= openMinutes && nowMinutes <= closeMinutes;
   }
