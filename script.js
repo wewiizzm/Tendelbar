@@ -185,22 +185,13 @@ function normalizeWhatsappNumber(value) {
   return String(value || "").replace(/[^\d]/g, "");
 }
 
-function isIosDevice() {
-  return /iPad|iPhone|iPod/.test(window.navigator.userAgent);
-}
-
-function isIosSafari() {
-  const userAgent = window.navigator.userAgent;
-  return isIosDevice() && /Safari/i.test(userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(userAgent);
-}
-
 function buildWhatsappWebUrl(message) {
-  return `https://api.whatsapp.com/send/?phone=${whatsappNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
+  return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 }
 
 function openWhatsappConversation(message) {
   const webUrl = buildWhatsappWebUrl(message);
-  window.location.href = webUrl;
+  window.location.assign(webUrl);
 }
 
 function formatPickupTime(value) {
