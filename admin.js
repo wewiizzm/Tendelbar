@@ -420,25 +420,34 @@ async function playAdminOrdersNotificationTone() {
     const now = adminOrdersAudioContext.currentTime;
     const master = adminOrdersAudioContext.createGain();
     master.connect(adminOrdersAudioContext.destination);
-    master.gain.setValueAtTime(0.0001, now);
-    master.gain.exponentialRampToValueAtTime(0.055, now + 0.03);
-    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+    master.gain.value = 0.9;
 
-    const firstOscillator = adminOrdersAudioContext.createOscillator();
-    firstOscillator.type = 'sine';
-    firstOscillator.frequency.setValueAtTime(740, now);
-    firstOscillator.frequency.exponentialRampToValueAtTime(880, now + 0.16);
-    firstOscillator.connect(master);
-    firstOscillator.start(now);
-    firstOscillator.stop(now + 0.18);
+    const toneBursts = [
+      { startOffset: 0, duration: 0.26, fromFrequency: 740, toFrequency: 880, peakGain: 0.05 },
+      { startOffset: 0.34, duration: 0.26, fromFrequency: 740, toFrequency: 880, peakGain: 0.05 },
+      { startOffset: 0.78, duration: 0.34, fromFrequency: 988, toFrequency: 1174, peakGain: 0.06 },
+      { startOffset: 1.24, duration: 0.46, fromFrequency: 1046, toFrequency: 1318, peakGain: 0.07 }
+    ];
 
-    const secondOscillator = adminOrdersAudioContext.createOscillator();
-    secondOscillator.type = 'sine';
-    secondOscillator.frequency.setValueAtTime(988, now + 0.16);
-    secondOscillator.frequency.exponentialRampToValueAtTime(1174, now + 0.34);
-    secondOscillator.connect(master);
-    secondOscillator.start(now + 0.16);
-    secondOscillator.stop(now + 0.36);
+    toneBursts.forEach((burst) => {
+      const burstStart = now + burst.startOffset;
+      const burstEnd = burstStart + burst.duration;
+      const oscillator = adminOrdersAudioContext.createOscillator();
+      const gainNode = adminOrdersAudioContext.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(burst.fromFrequency, burstStart);
+      oscillator.frequency.exponentialRampToValueAtTime(burst.toFrequency, burstEnd);
+
+      gainNode.gain.setValueAtTime(0.0001, burstStart);
+      gainNode.gain.exponentialRampToValueAtTime(burst.peakGain, burstStart + 0.04);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, burstEnd);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(master);
+      oscillator.start(burstStart);
+      oscillator.stop(burstEnd);
+    });
   } catch (_) {}
 }
 
@@ -2055,9 +2064,6 @@ function setAdminPanel(panelName) {
   syncAdminOrdersWakeLock();
   if (activeAdminPanel === 'orders') {
     renderOrdersList();
-    if (previousPanel !== 'orders') {
-      void playAdminOrdersNotificationTone();
-    }
     return;
   }
   if (activeAdminPanel === 'counter') {
