@@ -1058,7 +1058,11 @@ if (orderForm && pickupTimeInput && orderNotesInput) {
       persistedOrder = response?.order || null;
     } catch (error) {
       console.error(error);
-      window.alert('Nao foi possivel registrar o pedido no painel interno agora. O WhatsApp sera aberto mesmo assim.');
+      window.alert(
+        error?.message
+          ? `Nao foi possivel registrar o pedido no painel interno agora: ${error.message}`
+          : 'Nao foi possivel registrar o pedido no painel interno agora. O WhatsApp sera aberto mesmo assim.'
+      );
     }
     const lines = ['Olá quero fazer um pedido', '', `*Nome*: ${customerName}`, '', '*Itens do pedido*:'];
     if (typeof persistedOrder?.orderCode === 'string' && persistedOrder.orderCode.trim()) {
