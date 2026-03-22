@@ -198,59 +198,28 @@ function buildWhatsappWebUrl(message) {
   return `https://api.whatsapp.com/send/?phone=${whatsappNumber}&text=${encodeURIComponent(message)}&type=phone_number&app_absent=0`;
 }
 
-function buildWhatsappAppUrl(message) {
-  return `whatsapp://send?phone=${whatsappNumber}&text=${encodeURIComponent(message)}`;
-}
-
-function openWhatsappConversation(message, preopenedWindow = null) {
+function openWhatsappConversation(message) {
   const webUrl = buildWhatsappWebUrl(message);
-  if (!isIosSafari()) {
-    let launchedWhatsappWindow = false;
-    try {
-      const whatsappWindow =
-        preopenedWindow && !preopenedWindow.closed
-          ? preopenedWindow
-          : window.open(webUrl, "_blank", "noopener");
-      if (whatsappWindow) {
-        if (whatsappWindow.location.href !== webUrl) {
-          whatsappWindow.location.href = webUrl;
-        }
-        launchedWhatsappWindow = true;
-      }
-    } catch (_) {
-      launchedWhatsappWindow = false;
-    }
-    if (!launchedWhatsappWindow) {
-      window.location.href = webUrl;
-    }
+  if (isIosSafari()) {
+    window.location.href = webUrl;
     return;
   }
 
-  const appUrl = buildWhatsappAppUrl(message);
-  const targetWindow =
-    preopenedWindow && !preopenedWindow.closed ? preopenedWindow : window;
-
-  let fallbackHandled = false;
-  const fallbackToWeb = () => {
-    if (fallbackHandled || document.visibilityState === "hidden") {
-      return;
-    }
-    fallbackHandled = true;
-    try {
-      targetWindow.location.href = webUrl;
-    } catch (_) {
-      window.location.href = webUrl;
-    }
-  };
-
+  let launchedWhatsappWindow = false;
   try {
-    targetWindow.location.href = appUrl;
+    const whatsappWindow = window.open(webUrl, "_blank", "noopener");
+    if (whatsappWindow) {
+      if (whatsappWindow.location.href !== webUrl) {
+        whatsappWindow.location.href = webUrl;
+      }
+      launchedWhatsappWindow = true;
+    }
   } catch (_) {
-    fallbackToWeb();
-    return;
+    launchedWhatsappWindow = false;
   }
-
-  window.setTimeout(fallbackToWeb, 1200);
+  if (!launchedWhatsappWindow) {
+    window.location.href = webUrl;
+  }
 }
 
 function formatPickupTime(value) {
@@ -1211,14 +1180,6 @@ if (orderForm && pickupTimeInput && orderNotesInput) {
       pickupTimeInput.focus();
       return;
     }
-    let preopenedWhatsappWindow = null;
-    if (whatsappNumber && isIosSafari()) {
-      try {
-        preopenedWhatsappWindow = window.open("", "_blank");
-      } catch (_) {
-        preopenedWhatsappWindow = null;
-      }
-    }
     const notes = orderNotesInput.value.trim();
     const totalEstimate = getItemsSubtotal();
     const createdAt = new Date().toISOString();
@@ -1286,15 +1247,12 @@ if (orderForm && pickupTimeInput && orderNotesInput) {
     }
     lines.push(`*Valor total*: ${formatBRL(totalEstimate)}`);
     if (!whatsappNumber) {
-      if (preopenedWhatsappWindow && !preopenedWhatsappWindow.closed) {
-        preopenedWhatsappWindow.close();
-      }
       window.alert(
         "O numero do WhatsApp nao esta configurado no servidor. Configure PUBLIC_WHATSAPP_NUMBER antes de publicar.",
       );
       return;
     }
-    openWhatsappConversation(lines.join("\n"), preopenedWhatsappWindow);
+    openWhatsappConversation(lines.join("\n"));
     closeOrderModal();
   });
 }
