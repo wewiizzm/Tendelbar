@@ -91,7 +91,7 @@ const ADMIN_VERIFY_PASSWORD_ENDPOINT = '/api/admin/verify-password';
 const ADMIN_ORDERS_ACCESS_ENDPOINT = '/api/admin/orders-access';
 const ORDER_STATUS_PENDING = 'pending';
 const ORDER_STATUS_READY = 'ready';
-const ADMIN_STATE_REFRESH_INTERVAL_MS = 30000;
+const ADMIN_STATE_REFRESH_INTERVAL_MS = 5000;
 const DEFAULT_ORDERS_OPEN_TIME = '19:00';
 const DEFAULT_ORDERS_CLOSE_TIME = '23:00';
 const DEFAULT_MENU_CATEGORIES = [
@@ -415,13 +415,13 @@ async function playAdminOrdersNotificationTone() {
     const now = adminOrdersAudioContext.currentTime;
     const master = adminOrdersAudioContext.createGain();
     master.connect(adminOrdersAudioContext.destination);
-    master.gain.value = 0.9;
+    master.gain.value = 1;
 
     const toneBursts = [
-      { startOffset: 0, duration: 0.26, fromFrequency: 740, toFrequency: 880, peakGain: 0.05 },
-      { startOffset: 0.34, duration: 0.26, fromFrequency: 740, toFrequency: 880, peakGain: 0.05 },
-      { startOffset: 0.78, duration: 0.34, fromFrequency: 988, toFrequency: 1174, peakGain: 0.06 },
-      { startOffset: 1.24, duration: 0.46, fromFrequency: 1046, toFrequency: 1318, peakGain: 0.07 }
+      { startOffset: 0, duration: 0.26, fromFrequency: 740, toFrequency: 880, peakGain: 0.11 },
+      { startOffset: 0.34, duration: 0.26, fromFrequency: 740, toFrequency: 880, peakGain: 0.11 },
+      { startOffset: 0.78, duration: 0.34, fromFrequency: 988, toFrequency: 1174, peakGain: 0.13 },
+      { startOffset: 1.24, duration: 0.46, fromFrequency: 1046, toFrequency: 1318, peakGain: 0.15 }
     ];
 
     toneBursts.forEach((burst) => {
@@ -430,7 +430,7 @@ async function playAdminOrdersNotificationTone() {
       const oscillator = adminOrdersAudioContext.createOscillator();
       const gainNode = adminOrdersAudioContext.createGain();
 
-      oscillator.type = 'sine';
+      oscillator.type = 'triangle';
       oscillator.frequency.setValueAtTime(burst.fromFrequency, burstStart);
       oscillator.frequency.exponentialRampToValueAtTime(burst.toFrequency, burstEnd);
 
