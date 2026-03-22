@@ -185,13 +185,38 @@ function normalizeWhatsappNumber(value) {
   return String(value || "").replace(/[^\d]/g, "");
 }
 
+function isIosSafari() {
+  const userAgent = window.navigator.userAgent;
+  const isAppleTouchDevice =
+    /iPad|iPhone|iPod/.test(userAgent) ||
+    (window.navigator.platform === "MacIntel" &&
+      window.navigator.maxTouchPoints > 1);
+  return (
+    isAppleTouchDevice &&
+    /Safari/i.test(userAgent) &&
+    !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(userAgent)
+  );
+}
+
 function buildWhatsappWebUrl(message) {
   return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 }
 
 function openWhatsappConversation(message) {
   const webUrl = buildWhatsappWebUrl(message);
-  window.location.assign(webUrl);
+  const tempLink = document.createElement("a");
+  tempLink.href = webUrl;
+  tempLink.target = "_self";
+  tempLink.rel = "noopener";
+  tempLink.style.display = "none";
+  document.body.appendChild(tempLink);
+  tempLink.click();
+  tempLink.remove();
+  window.setTimeout(() => {
+    if (document.visibilityState === "visible") {
+      window.location.assign(webUrl);
+    }
+  }, 250);
 }
 
 function formatPickupTime(value) {
@@ -1019,6 +1044,37 @@ async function saveOrderHistoryEntry(entry) {
   });
 }
 
+function saveOrderHistoryEntryInBackground(entry) {
+  const body = JSON.stringify(entry);
+  if (typeof navigator.sendBeacon === "function") {
+    try {
+      const payload = new Blob([body], {
+        type: "application/json; charset=utf-8",
+      });
+      if (navigator.sendBeacon(CREATE_ORDER_ENDPOINT, payload)) {
+        return true;
+      }
+    } catch (_) {}
+  }
+  try {
+    void fetch(CREATE_ORDER_ENDPOINT, {
+      method: "POST",
+      body,
+      credentials: "same-origin",
+      cache: "no-store",
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }).catch((error) => {
+      console.error(error);
+    });
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 if (filtersContainer) {
   filtersContainer.addEventListener("click", (event) => {
     const button = event.target.closest(".filter-btn");
@@ -1176,18 +1232,6 @@ if (orderForm && pickupTimeInput && orderNotesInput) {
         totalFormatted: formatBRL(item.unitPrice * item.quantity),
       })),
     };
-    let persistedOrder = null;
-    try {
-      const response = await saveOrderHistoryEntry(orderEntry);
-      persistedOrder = response?.order || null;
-    } catch (error) {
-      console.error(error);
-      window.alert(
-        error?.message
-          ? `Nao foi possivel registrar o pedido no painel interno agora: ${error.message}`
-          : "Nao foi possivel registrar o pedido no painel interno agora. O WhatsApp sera aberto mesmo assim.",
-      );
-    }
     const lines = [
       "Olá quero fazer um pedido",
       "",
@@ -1195,12 +1239,6 @@ if (orderForm && pickupTimeInput && orderNotesInput) {
       "",
       "*Itens do pedido*:",
     ];
-    if (
-      typeof persistedOrder?.orderCode === "string" &&
-      persistedOrder.orderCode.trim()
-    ) {
-      lines.splice(3, 0, `*Pedido*: ${persistedOrder.orderCode.trim()}`, "");
-    }
     cart.forEach((item) => {
       lines.push(
         `- ${item.title} x${item.quantity} (${formatBRL(item.unitPrice * item.quantity)})`,
@@ -1223,6 +1261,35 @@ if (orderForm && pickupTimeInput && orderNotesInput) {
         "O numero do WhatsApp nao esta configurado no servidor. Configure PUBLIC_WHATSAPP_NUMBER antes de publicar.",
       );
       return;
+    }
+    if (isIosSafari()) {
+      const queued = saveOrderHistoryEntryInBackground(orderEntry);
+      if (!queued) {
+        console.error(
+          "Nao foi possivel iniciar o registro do pedido em segundo plano no iPhone.",
+        );
+      }
+      openWhatsappConversation(lines.join("\n"));
+      closeOrderModal();
+      return;
+    }
+    let persistedOrder = null;
+    try {
+      const response = await saveOrderHistoryEntry(orderEntry);
+      persistedOrder = response?.order || null;
+    } catch (error) {
+      console.error(error);
+      window.alert(
+        error?.message
+          ? `Nao foi possivel registrar o pedido no painel interno agora: ${error.message}`
+          : "Nao foi possivel registrar o pedido no painel interno agora. O WhatsApp sera aberto mesmo assim.",
+      );
+    }
+    if (
+      typeof persistedOrder?.orderCode === "string" &&
+      persistedOrder.orderCode.trim()
+    ) {
+      lines.splice(3, 0, `*Pedido*: ${persistedOrder.orderCode.trim()}`, "");
     }
     openWhatsappConversation(lines.join("\n"));
     closeOrderModal();
