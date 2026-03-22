@@ -204,19 +204,7 @@ function buildWhatsappWebUrl(message) {
 
 function openWhatsappConversation(message) {
   const webUrl = buildWhatsappWebUrl(message);
-  const tempLink = document.createElement("a");
-  tempLink.href = webUrl;
-  tempLink.target = "_self";
-  tempLink.rel = "noopener";
-  tempLink.style.display = "none";
-  document.body.appendChild(tempLink);
-  tempLink.click();
-  tempLink.remove();
-  window.setTimeout(() => {
-    if (document.visibilityState === "visible") {
-      window.location.assign(webUrl);
-    }
-  }, 250);
+  window.location.href = webUrl;
 }
 
 function formatPickupTime(value) {
