@@ -122,6 +122,7 @@ let lastAdminRemovalTrigger = null;
 let lastAdminOrdersAccessTrigger = null;
 let adminStateRefreshTimerId = null;
 let adminOrdersAudioContext = null;
+let adminOrdersAudioPrimed = false;
 let lastAdminOrdersSeenKey = '';
 let adminOrdersWakeLockSentinel = null;
 let adminOrdersHistoryExpanded = false;
@@ -407,15 +408,9 @@ function sortAdminOrdersNewestFirst(orders) {
 
 async function playAdminOrdersNotificationTone() {
   try {
-    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextCtor) {
+    const isAudioReady = await primeAdminOrdersAudio();
+    if (!isAudioReady || !adminOrdersAudioContext) {
       return;
-    }
-    if (!adminOrdersAudioContext) {
-      adminOrdersAudioContext = new AudioContextCtor();
-    }
-    if (adminOrdersAudioContext.state === 'suspended') {
-      await adminOrdersAudioContext.resume();
     }
     const now = adminOrdersAudioContext.currentTime;
     const master = adminOrdersAudioContext.createGain();
@@ -449,6 +444,46 @@ async function playAdminOrdersNotificationTone() {
       oscillator.stop(burstEnd);
     });
   } catch (_) {}
+}
+
+async function primeAdminOrdersAudio() {
+  try {
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextCtor) {
+      return false;
+    }
+    if (!adminOrdersAudioContext) {
+      adminOrdersAudioContext = new AudioContextCtor();
+    }
+    if (adminOrdersAudioContext.state === 'suspended') {
+      await adminOrdersAudioContext.resume();
+    }
+    if (!adminOrdersAudioPrimed) {
+      const now = adminOrdersAudioContext.currentTime;
+      const oscillator = adminOrdersAudioContext.createOscillator();
+      const gainNode = adminOrdersAudioContext.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(440, now);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.0002, now + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+      oscillator.connect(gainNode);
+      gainNode.connect(adminOrdersAudioContext.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.02);
+      adminOrdersAudioPrimed = true;
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function primeAdminOrdersAudioFromGesture() {
+  if (adminOrdersAudioPrimed) {
+    return;
+  }
+  void primeAdminOrdersAudio();
 }
 
 async function requestAdminOrdersNotificationPermission() {
@@ -3168,6 +3203,17 @@ document.addEventListener('keydown', (event) => {
     closeAdminCategoryRemoveModal();
     setRemovalStatus(removalType, 'Remocao cancelada.');
   }
+});
+
+document.addEventListener('pointerdown', () => {
+  primeAdminOrdersAudioFromGesture();
+}, { passive: true });
+
+document.addEventListener('keydown', (event) => {
+  if (!['Enter', ' ', 'Spacebar'].includes(event.key)) {
+    return;
+  }
+  primeAdminOrdersAudioFromGesture();
 });
 
 window.addEventListener('storage', (event) => {
