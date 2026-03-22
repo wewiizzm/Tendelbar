@@ -200,26 +200,7 @@ function buildWhatsappWebUrl(message) {
 
 function openWhatsappConversation(message) {
   const webUrl = buildWhatsappWebUrl(message);
-  if (isIosSafari()) {
-    window.location.href = webUrl;
-    return;
-  }
-
-  let launchedWhatsappWindow = false;
-  try {
-    const whatsappWindow = window.open(webUrl, "_blank", "noopener");
-    if (whatsappWindow) {
-      if (whatsappWindow.location.href !== webUrl) {
-        whatsappWindow.location.href = webUrl;
-      }
-      launchedWhatsappWindow = true;
-    }
-  } catch (_) {
-    launchedWhatsappWindow = false;
-  }
-  if (!launchedWhatsappWindow) {
-    window.location.href = webUrl;
-  }
+  window.location.href = webUrl;
 }
 
 function formatPickupTime(value) {
