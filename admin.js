@@ -121,12 +121,15 @@ let pendingRemovalContext = null;
 let lastAdminRemovalTrigger = null;
 let lastAdminOrdersAccessTrigger = null;
 let adminStateRefreshTimerId = null;
-let adminOrdersAudioContext = null;
-let adminOrdersAudioPrimed = false;
 let lastAdminOrdersSeenKey = '';
 let adminOrdersWakeLockSentinel = null;
 let adminOrdersHistoryExpanded = false;
 let adminCounterHistoryExpanded = false;
+let pendingAdminNewOrderPopupOrder = null;
+let adminNewOrderPopup = null;
+let adminNewOrderPopupTitle = null;
+let adminNewOrderPopupMessage = null;
+let adminNewOrderPopupReceiveButton = null;
 
 function normalizeCategoryId(value) {
   return String(value || '')
@@ -406,84 +409,142 @@ function sortAdminOrdersNewestFirst(orders) {
     .sort((left, right) => new Date(right?.createdAt || 0).getTime() - new Date(left?.createdAt || 0).getTime());
 }
 
-async function playAdminOrdersNotificationTone() {
-  try {
-    const isAudioReady = await primeAdminOrdersAudio();
-    if (!isAudioReady || !adminOrdersAudioContext) {
+function ensureAdminNewOrderPopup() {
+  if (adminNewOrderPopup) {
+    return adminNewOrderPopup;
+  }
+  const popup = document.createElement('aside');
+  popup.setAttribute('aria-live', 'polite');
+  popup.setAttribute('aria-atomic', 'true');
+  Object.assign(popup.style, {
+    position: 'fixed',
+    right: '18px',
+    bottom: '18px',
+    zIndex: '1200',
+    width: 'min(360px, calc(100vw - 28px))',
+    borderRadius: '20px',
+    border: '1px solid rgba(230, 122, 0, 0.22)',
+    background: 'linear-gradient(180deg, #fffaf4 0%, #fff3e3 100%)',
+    boxShadow: '0 18px 40px rgba(55, 32, 11, 0.20)',
+    padding: '16px',
+    display: 'none',
+    gap: '10px'
+  });
+
+  const kicker = document.createElement('p');
+  kicker.textContent = 'Novo pedido';
+  Object.assign(kicker.style, {
+    margin: '0',
+    fontSize: '0.78rem',
+    fontWeight: '800',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: '#b55b00'
+  });
+
+  const title = document.createElement('h4');
+  Object.assign(title.style, {
+    margin: '0',
+    fontSize: '1rem',
+    color: '#2f2115'
+  });
+
+  const message = document.createElement('p');
+  Object.assign(message.style, {
+    margin: '0',
+    color: '#5d4230',
+    lineHeight: '1.45'
+  });
+
+  const actions = document.createElement('div');
+  Object.assign(actions.style, {
+    display: 'flex',
+    justifyContent: 'flex-end'
+  });
+
+  const receiveButton = document.createElement('button');
+  receiveButton.type = 'button';
+  receiveButton.textContent = 'Receber pedido';
+  receiveButton.className = 'owner-toggle';
+  receiveButton.addEventListener('click', () => {
+    const orderId = String(receiveButton.dataset.orderId || '').trim();
+    hideAdminNewOrderPopup(true);
+    if (!orderId) {
       return;
     }
-    const now = adminOrdersAudioContext.currentTime;
-    const master = adminOrdersAudioContext.createGain();
-    master.connect(adminOrdersAudioContext.destination);
-    master.gain.value = 1;
+    activeAdminOrdersFilter = 'all';
+    setAdminPanel('orders');
+    renderOrdersList();
+    window.setTimeout(() => {
+      focusAdminOrderCard(orderId);
+    }, 60);
+  });
 
-    const toneBursts = [
-      { startOffset: 0, duration: 0.26, fromFrequency: 740, toFrequency: 880, peakGain: 0.11 },
-      { startOffset: 0.34, duration: 0.26, fromFrequency: 740, toFrequency: 880, peakGain: 0.11 },
-      { startOffset: 0.78, duration: 0.34, fromFrequency: 988, toFrequency: 1174, peakGain: 0.13 },
-      { startOffset: 1.24, duration: 0.46, fromFrequency: 1046, toFrequency: 1318, peakGain: 0.15 }
-    ];
+  actions.appendChild(receiveButton);
+  popup.append(kicker, title, message, actions);
+  document.body.appendChild(popup);
 
-    toneBursts.forEach((burst) => {
-      const burstStart = now + burst.startOffset;
-      const burstEnd = burstStart + burst.duration;
-      const oscillator = adminOrdersAudioContext.createOscillator();
-      const gainNode = adminOrdersAudioContext.createGain();
-
-      oscillator.type = 'triangle';
-      oscillator.frequency.setValueAtTime(burst.fromFrequency, burstStart);
-      oscillator.frequency.exponentialRampToValueAtTime(burst.toFrequency, burstEnd);
-
-      gainNode.gain.setValueAtTime(0.0001, burstStart);
-      gainNode.gain.exponentialRampToValueAtTime(burst.peakGain, burstStart + 0.04);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, burstEnd);
-
-      oscillator.connect(gainNode);
-      gainNode.connect(master);
-      oscillator.start(burstStart);
-      oscillator.stop(burstEnd);
-    });
-  } catch (_) {}
+  adminNewOrderPopup = popup;
+  adminNewOrderPopupTitle = title;
+  adminNewOrderPopupMessage = message;
+  adminNewOrderPopupReceiveButton = receiveButton;
+  return popup;
 }
 
-async function primeAdminOrdersAudio() {
-  try {
-    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextCtor) {
-      return false;
-    }
-    if (!adminOrdersAudioContext) {
-      adminOrdersAudioContext = new AudioContextCtor();
-    }
-    if (adminOrdersAudioContext.state === 'suspended') {
-      await adminOrdersAudioContext.resume();
-    }
-    if (!adminOrdersAudioPrimed) {
-      const now = adminOrdersAudioContext.currentTime;
-      const oscillator = adminOrdersAudioContext.createOscillator();
-      const gainNode = adminOrdersAudioContext.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(440, now);
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.0002, now + 0.01);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
-      oscillator.connect(gainNode);
-      gainNode.connect(adminOrdersAudioContext.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.02);
-      adminOrdersAudioPrimed = true;
-    }
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-function primeAdminOrdersAudioFromGesture() {
-  if (adminOrdersAudioPrimed) {
+function showAdminNewOrderPopup(order) {
+  if (!order) {
     return;
   }
-  void primeAdminOrdersAudio();
+  pendingAdminNewOrderPopupOrder = order;
+  if (activeAdminPanel !== 'orders') {
+    return;
+  }
+  const popup = ensureAdminNewOrderPopup();
+  const orderCode = getOrderDisplayCode(order);
+  const customerName = sanitizeMenuText(order?.customerName, 'Cliente nao informado');
+  const sourceLabel = getOrderSourceLabel(order);
+  const pickupTime = formatPickupTime(order?.pickupTime);
+  adminNewOrderPopupTitle.textContent = `${orderCode} - ${customerName}`;
+  adminNewOrderPopupMessage.textContent = `${sourceLabel} - retirada ${pickupTime}. Clique para receber e ir direto ao pedido.`;
+  adminNewOrderPopupReceiveButton.dataset.orderId = String(order?.id || '');
+  popup.style.display = 'grid';
+}
+
+function hideAdminNewOrderPopup(clearPending = false) {
+  if (clearPending) {
+    pendingAdminNewOrderPopupOrder = null;
+  }
+  if (!adminNewOrderPopup) {
+    return;
+  }
+  adminNewOrderPopup.style.display = 'none';
+}
+
+function focusAdminOrderCard(orderId) {
+  if (!orderId) {
+    return;
+  }
+  const selector = `[data-order-id="${orderId}"]`;
+  const targetCard =
+    adminOrdersList?.querySelector(selector) ||
+    adminOrdersHistoryList?.querySelector(selector) ||
+    adminCounterOrdersList?.querySelector(selector) ||
+    adminCounterHistoryList?.querySelector(selector);
+  if (!targetCard) {
+    return;
+  }
+  targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const previousTransition = targetCard.style.transition;
+  const previousBoxShadow = targetCard.style.boxShadow;
+  const previousTransform = targetCard.style.transform;
+  targetCard.style.transition = 'box-shadow 180ms ease, transform 180ms ease';
+  targetCard.style.boxShadow = '0 0 0 3px rgba(230, 122, 0, 0.24), 0 16px 30px rgba(230, 122, 0, 0.16)';
+  targetCard.style.transform = 'translateY(-2px)';
+  window.setTimeout(() => {
+    targetCard.style.boxShadow = previousBoxShadow;
+    targetCard.style.transform = previousTransform;
+    targetCard.style.transition = previousTransition;
+  }, 1800);
 }
 
 async function requestAdminOrdersNotificationPermission() {
@@ -499,13 +560,11 @@ function notifyAdminNewOrder(order) {
   if (!adminAuthenticated || !adminOrdersAccessAuthenticated || !order) {
     return;
   }
+  showAdminNewOrderPopup(order);
   const orderCode = getOrderDisplayCode(order);
   const orderSource = getOrderSourceLabel(order);
   const customerName = sanitizeMenuText(order?.customerName, 'Pedido sem identificacao');
   const pickupTime = formatPickupTime(order?.pickupTime);
-  if (activeAdminPanel === 'orders') {
-    void playAdminOrdersNotificationTone();
-  }
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
     return;
   }
@@ -1736,6 +1795,7 @@ async function clearAdminOrderHistory(scope) {
 function createAdminOrderCard(order) {
   const card = document.createElement('article');
   card.className = 'admin-order-card';
+  card.dataset.orderId = String(order?.id || '');
   const sourceIsCounter = normalizeOrderSource(order?.source) === 'counter';
   card.classList.add(sourceIsCounter ? 'is-source-counter' : 'is-source-whatsapp');
 
@@ -2062,7 +2122,6 @@ function refreshAdminPanel() {
 }
 
 function setAdminPanel(panelName) {
-  const previousPanel = activeAdminPanel;
   if (panelName === 'orders' && adminOrdersPanel) {
     activeAdminPanel = 'orders';
   } else if (panelName === 'counter' && adminCounterPanel) {
@@ -2099,8 +2158,14 @@ function setAdminPanel(panelName) {
   syncAdminOrdersWakeLock();
   if (activeAdminPanel === 'orders') {
     renderOrdersList();
+    if (pendingAdminNewOrderPopupOrder) {
+      showAdminNewOrderPopup(pendingAdminNewOrderPopupOrder);
+    } else {
+      hideAdminNewOrderPopup();
+    }
     return;
   }
+  hideAdminNewOrderPopup();
   if (activeAdminPanel === 'counter') {
     if (adminCounterStatus) {
       adminCounterStatus.textContent = 'Monte o pedido e registre aqui os atendimentos do balcao.';
@@ -2440,6 +2505,7 @@ async function removeMenuItemById(itemId) {
 function showAdminLoginView() {
   adminAuthenticated = false;
   adminOrdersAccessAuthenticated = false;
+  hideAdminNewOrderPopup(true);
   resetAdminLoginError();
   closeAdminOrdersAccessModal();
   closeAdminCategoryRemoveModal();
@@ -3203,17 +3269,6 @@ document.addEventListener('keydown', (event) => {
     closeAdminCategoryRemoveModal();
     setRemovalStatus(removalType, 'Remocao cancelada.');
   }
-});
-
-document.addEventListener('pointerdown', () => {
-  primeAdminOrdersAudioFromGesture();
-}, { passive: true });
-
-document.addEventListener('keydown', (event) => {
-  if (!['Enter', ' ', 'Spacebar'].includes(event.key)) {
-    return;
-  }
-  primeAdminOrdersAudioFromGesture();
 });
 
 window.addEventListener('storage', (event) => {
